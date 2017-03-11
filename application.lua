@@ -34,14 +34,18 @@ m:on("message", function(c, topic, message)
   if topic == "bus/rf/433/out" then
     -- the protocol: proto,pulse,repetitions,code,length
     -- eg. 1,350,4,5393,24
-    local parser = string.gmatch(message, "[^,]+")
-    local protocol = tonumber(parser())
-    local pulse = tonumber(parser())
-    local repetitions = tonumber(parser())
-    local code = tonumber(parser())
-    local length = tonumber(parser())
-    log("Switch toggle", { protocol = protocol, pulse = pulse, repetitions = repetitions, code = code, length = length })
-    rfswitch.send(protocol, pulse, repetitions, 6, code, length)
+    if not pcall(function()
+      local parser = string.gmatch(message, "[^,]+")
+      local protocol = tonumber(parser())
+      local pulse = tonumber(parser())
+      local repetitions = tonumber(parser())
+      local code = tonumber(parser())
+      local length = tonumber(parser())
+      rfswitch.send(protocol, pulse, repetitions, 6, code, length)
+      log("Switch toggle", { protocol = protocol, pulse = pulse, repetitions = repetitions, code = code, length = length })
+    end) then
+      log("Error while processing bus/rf/433/out message '" .. message .."'", {})
+    end
   end
 end)
 
