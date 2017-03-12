@@ -1,6 +1,13 @@
 -- Initialize MQTT client
 m = mqtt.Client()
 
+-- Publish message on MQTT topic
+function publish(topic, message, qos, retain)
+  pcall(function()
+    m:publish(topic, message, qos, retain)
+  end)
+end
+
 -- Send log message
 function log(message, params)
   -- define base GEFL structure
@@ -15,9 +22,7 @@ function log(message, params)
     entry['_' .. k] = v
   end
   -- send the log entry (inside a pcall to handle errors)
-  pcall(function()
-    m:publish("system/logs", cjson.encode(entry), 0, 0)
-  end)
+  publish("system/logs", cjson.encode(entry), 0, 0)
 end
 
 -- Connect to MQTT server
@@ -50,3 +55,10 @@ m:on("message", function(c, topic, message)
 end)
 
 print("MQTT: setup completed")
+
+-- Initialize rfrecv
+dofile('rfrecv.lua')
+
+rfrecv.start(5, 2, 1, 8)
+print("RFRECV: Setup completed")
+
