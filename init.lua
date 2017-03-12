@@ -13,8 +13,8 @@ wifi.sta.config(SSID, PASSWORD)
 wifi.sta.eventMonReg(wifi.STA_GOTIP, function()
   wifi.sta.eventMonStop()
   print("connected (" .. wifi.sta.getip() .. ", " .. (tmr.now() - _wifi_timestamp)/1000 .. "ms)")
-  uart.write(0, "You have 5 seconds to abort...")
-  tmr.create():alarm(5000, tmr.ALARM_SINGLE, function()
+  uart.write(0, "You have 3 seconds to abort...")
+  tmr.create():alarm(3000, tmr.ALARM_SINGLE, function()
     if file.open("init.lua") == nil then
       print("init.lua deleted or renamed!")
     else
