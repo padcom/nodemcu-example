@@ -37,6 +37,8 @@ long codeTs  = 0;
 
 void loop() {
   if (found) {
+    Serial.println(code);
+    found = false;
     if (abs(millis() - codeTs) > 100) {
       digitalWrite(5, 0);
     } else {
@@ -103,13 +105,13 @@ void DI0_ISR() {
       } else {
         state = STATE_WAIT_PREAMBLE;
       }
-      
+
       // decode wire bits to data bits
       if (state == STATE_READ_WIRE_BIT_HIGH) {
         if (nibble == 13) {
-          value <<= 1; bits++;
+          bits++; value <<= 1;
         } else if (nibble == 31) {
-          value <<= 1; value |= 1; bits++;
+          bits++; value <<= 1; value |= 1;
         } else {
           state = STATE_WAIT_PREAMBLE;
         }
