@@ -46,10 +46,11 @@ m:on("message", function(c, topic, message)
       local repetitions = tonumber(parser())
       local code = tonumber(parser())
       local length = tonumber(parser())
-      gpio.write(5, gpio.HIGH)
-      rfswitch.send(protocol, pulse, repetitions, 6, code, length)
-      gpio.write(5, gpio.LOW)
-      log("Switch toggle", { protocol = protocol, pulse = pulse, repetitions = repetitions, code = code, length = length })
+      gpio.write(GPIO2, gpio.HIGH)
+      gpio.write(GPIO15, gpio.HIGH)
+      rfswitch.send(protocol, pulse, repetitions, GPIO14, code, length)
+      gpio.write(GPIO15, gpio.LOW)
+      log("RF433 Sent", { protocol = protocol, pulse = pulse, repetitions = repetitions, code = code, length = length })
     end) then
       log("Error while processing bus/rf/433/out message '" .. message .."'", {})
     end
@@ -59,16 +60,16 @@ end)
 print("MQTT: setup completed")
 
 --Initialize rfswitch
-gpio.mode(5, gpio.OUTPUT)
-gpio.write(5, gpio.LOW)
+gpio.mode(GPIO15, gpio.OUTPUT)
+gpio.write(GPIO15, gpio.LOW)
 
 -- Initialize rfrecv
 dofile('rfrecv.lua')
 print("RFRECV: Loaded")
 
-rfrecv.start(7, 4, function(code, bits)
+rfrecv.start(GPIO13, GPIO2, function(code, bits)
   print("RFRECV: received code " .. code .. "/" .. bits)
-  log("Switch received", { code = code, bits = bits })
+  log("RF433 Received", { code = code, bits = bits })
   publish("bus/rf/433/in", code .. "," .. bits, 0, 0)
 end)
 

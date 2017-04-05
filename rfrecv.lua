@@ -11,8 +11,8 @@ rfrecv = {
   BITS      = 24,   -- number of bits
 
   -- Public state
-  pin = 7,          -- pin to listen for incoming pulses
-  led = 4,          -- led that will go on/off on edge change (for debugging)
+  pin = GPIO13,    -- pin to listen for incoming pulses
+  led = GPIO2,      -- led that will go on/off on edge change (for debugging, built-in led)
   enabled = false,  -- receiver state
   code = 0,         -- last received code (0 if none)
   callback = nil,   -- callback to be called when a code is successfuly retrieved
