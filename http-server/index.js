@@ -8,6 +8,7 @@ app.get('/', function(req, resp) {
 })
 
 app.get('/:type', function(req, resp) {
+  console.log(new Date())
   resp.send({ type: req.params.type, version: '3' })
 })
 
