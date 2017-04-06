@@ -79,7 +79,6 @@ local function downloadFile(f, next)
         code = tonumber(payload:sub(10, 12))
         if code ~= 200 then
           print("Unable to download "..f.."... skipping");
-          next()
           return
         end
         saving = true
