@@ -68,7 +68,7 @@ local function downloadFile(f, next)
   file.open(f, "w+")
   local saving = false
 
-  conn = net.createConnection(net.TCP, 0)
+  local conn = net.createConnection(net.TCP, 0)
 
   conn:on("receive", function(conn, payload)
     if saving then
@@ -115,14 +115,55 @@ local function saveConfig(config)
   file.close()
 end
 
+local function getJSON(host, port, path, cb)
+  local conn = net.createConnection(net.TCP, 0)
+  local saving = false
+  local code = 0
+  local payload = ''
+
+  conn:on('receive', function(conn, pl)
+    if saving then
+      payload = payload .. pl
+    else
+      if payload == '' then
+        code = pl:sub(10, 12)
+      end
+      local start = pl:find("\r\n\r\n")
+      if start then
+        saving = true
+        payload = pl:sub(start + 4)
+      end
+    end
+  end)
+
+  conn:on('connection', function(conn)
+    conn:send("GET "..path.." HTTP/1.0\r\n"..
+      "Host: "..HOST..":"..PORT.."\r\n"..
+      "Connection: close\r\n"..
+      "Accept-Charset: utf-8\r\n"..
+      "Accept-Encoding: \r\n"..
+      "Accept: application/json\r\n\r\n")
+  end)
+
+  conn:on('disconnection', function(conn, err)
+    if err ~= 0 then
+      cb(err, { version = 0, files = { } })
+    else
+      cb(tonumber(code), cjson.decode(payload))
+    end
+  end)
+
+  conn:connect(PORT, HOST)
+end
+
 local function checkForUpdates(next)
   uart.write(0, "Checking for updates...")
-  http.get("http://"..HOST..":"..PORT.."/" .. DEVICE_TYPE, nil, function(code, data)
-    if code < 0 or code ~= 200 then
+  getJSON(HOST, PORT, "/" .. DEVICE_TYPE, function(code, availableConfig)
+    if code and code ~= 200 then
       print("no update available ("..code..")")
+      next()
     else
-      local availableConfig = cjson.decode(data)
-      local currentConfig   = getCurrentConfig()
+      local currentConfig = getCurrentConfig()
 
       if currentConfig.version ~= availableConfig.version then
         print("new version (" .. availableConfig.version .. ") available (current: " .. currentConfig.version .. ") - updating")
