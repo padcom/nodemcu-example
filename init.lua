@@ -1,6 +1,7 @@
 DEVICE_TYPE = 'rf-gateway'
-HOST = "192.168.32.10"
-PORT = 3000
+
+local HOST = "192.168.32.10"
+local PORT = 3000
 
 local _wifi_timestamp = tmr.now()
 
