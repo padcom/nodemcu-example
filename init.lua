@@ -50,6 +50,16 @@ local function getCurrentConfig()
   return { version = 0, files = { } }
 end
 
+local function deleteOldFiles()
+  files = file.list();
+  for name, size in pairs(files) do
+    if name ~= 'init.lua' and name ~= 'restart.lua' and name ~= 'config' then
+      print("Deleting " .. name .. "...")
+      file.remove(name)
+    end
+  end
+end
+
 local function downloadFile(f, next)
   print("Updating " .. f .. "...")
 
@@ -115,6 +125,7 @@ local function checkForUpdates(next)
 
       if currentConfig.version ~= availableConfig.version then
         print("new version (" .. availableConfig.version .. ") available (current: " .. currentConfig.version .. ") - updating")
+        deleteOldFiles()
         downloadFiles(1, availableConfig.files, function()
           print("Files downloaded - saving config...")
           saveConfig(availableConfig)
