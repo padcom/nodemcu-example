@@ -45,7 +45,36 @@ local function getCurrentConfig()
     local ok, config = pcall(cjson.decode, file.read())
     if ok then return config  end
   end
-  return { type = DEVICE_TYPE, version = 0 }
+  return { type = DEVICE_TYPE, version = 0, files = { } }
+end
+
+local function downloadFile(f, next)
+  print("file: " .. f)
+  http.get("http://192.168.32.10:3000/" .. DEVICE_TYPE .. "/" .. f, function(code, data)
+    print(code, data)
+    if code < 0 or code ~= 200 then
+      print("no update available ("..code..")")
+    else
+      print("Saving file... ("..data..")")
+      file.open(f, "w")
+      file.write(data)
+      file.flush()
+      file.close()
+    end
+    print("File stored")
+    next()
+  end)
+end
+
+local function downloadFiles(index, files, next)
+  print("index: "..index)
+  if index == #files then
+    print("a")
+    downloadFile(files[index], next)
+  else
+    print("b")
+    downloadFile(files[index], function() downloadFiles(index + 1, files, next) end)
+  end
 end
 
 local function saveConfig(config)
@@ -66,10 +95,14 @@ local function checkForUpdates(next)
 
       if currentConfig.version ~= availableConfig.version then
         print("new version (" .. availableConfig.version .. ") available (current: " .. currentConfig.version .. ") - updating")
-        saveConfig(availableConfig)
-        -- todo: download all new files
-        print("System updated - restarting...")
-        node.restart()
+        downloadFiles(1, availableConfig.files,
+          function()
+            print("Files downloaded - saving config...")
+            saveConfig(availableConfig)
+
+            print("System updated - restarting...")
+            node.restart()
+          end)
       else
         print("current version (" .. currentConfig.version .. ") up to date")
         next()

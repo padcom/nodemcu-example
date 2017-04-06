@@ -9,11 +9,12 @@ app.get('/', function(req, resp) {
 
 app.get('/:type', function(req, resp) {
   console.log(new Date())
-  resp.send({ type: req.params.type, version: '3' })
+  resp.send({ type: req.params.type, version: '3', files: [ 'application.lua' ] })
 })
 
 app.get('/alamakota/application.lua', function(req, resp) {
-  resp.send('print("Hello, world!")')
+  console.log("Getting application.lua")
+  resp.send('print("Hello, world!")\n')
 })
 
 
