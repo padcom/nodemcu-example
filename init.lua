@@ -1,4 +1,6 @@
 DEVICE_TYPE = 'alamakota'
+HOST = "192.168.32.10"
+PORT = 3000
 
 local _wifi_timestamp = tmr.now()
 
@@ -49,30 +51,49 @@ local function getCurrentConfig()
 end
 
 local function downloadFile(f, next)
-  print("file: " .. f)
-  http.get("http://192.168.32.10:3000/" .. DEVICE_TYPE .. "/" .. f, function(code, data)
-    print(code, data)
-    if code < 0 or code ~= 200 then
-      print("no update available ("..code..")")
+  print("Updating " .. f .. "...")
+  -- print("http://"..HOST..":"..PORT.."/" .. DEVICE_TYPE .. "/" .. f)
+
+  file.remove(f)
+  file.open(f, "w+")
+  local saving = false
+
+  conn = net.createConnection(net.TCP, 0)
+
+  conn:on("receive", function(conn, payload)
+    if saving then
+      file.write(payload)
     else
-      print("Saving file... ("..data..")")
-      file.open(f, "w")
-      file.write(data)
-      file.flush()
-      file.close()
+      local start = payload:find("\r\n\r\n")
+      if start then
+        saving = true
+        file.write(payload:sub(start + 4))
+      end
     end
-    print("File stored")
+  end)
+
+  conn:on("disconnection", function(conn)
+    conn = nil
+    file.close()
     next()
   end)
+
+  conn:on("connection", function(conn)
+    conn:send("GET /"..DEVICE_TYPE.."/"..f.." HTTP/1.0\r\n"..
+      "Host: "..HOST..":"..PORT.."\r\n"..
+      "Connection: close\r\n"..
+      "Accept-Charset: utf-8\r\n"..
+      "Accept-Encoding: \r\n"..
+      "Accept: */*\r\n\r\n")
+  end)
+
+  conn:connect(PORT, HOST)
 end
 
 local function downloadFiles(index, files, next)
-  print("index: "..index)
   if index == #files then
-    print("a")
     downloadFile(files[index], next)
   else
-    print("b")
     downloadFile(files[index], function() downloadFiles(index + 1, files, next) end)
   end
 end
@@ -86,7 +107,7 @@ end
 
 local function checkForUpdates(next)
   uart.write(0, "Checking for updates...")
-  http.get("http://192.168.32.10:3000/" .. DEVICE_TYPE, nil, function(code, data)
+  http.get("http://"..HOST..":"..PORT.."/" .. DEVICE_TYPE, nil, function(code, data)
     if code < 0 or code ~= 200 then
       print("no update available ("..code..")")
     else
@@ -95,14 +116,12 @@ local function checkForUpdates(next)
 
       if currentConfig.version ~= availableConfig.version then
         print("new version (" .. availableConfig.version .. ") available (current: " .. currentConfig.version .. ") - updating")
-        downloadFiles(1, availableConfig.files,
-          function()
-            print("Files downloaded - saving config...")
-            saveConfig(availableConfig)
-
-            print("System updated - restarting...")
-            node.restart()
-          end)
+        downloadFiles(1, availableConfig.files, function()
+          print("Files downloaded - saving config...")
+          saveConfig(availableConfig)
+          print("System updated - restarting...")
+          tmr.create():alarm(1000, tmr.ALARM_SINGLE, node.restart)
+        end)
       else
         print("current version (" .. currentConfig.version .. ") up to date")
         next()
