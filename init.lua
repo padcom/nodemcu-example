@@ -76,6 +76,12 @@ local function downloadFile(f, next)
     else
       local start = payload:find("\r\n\r\n")
       if start then
+        code = tonumber(payload:sub(10, 12))
+        if code ~= 200 then
+          print("Unable to download "..f.."... skipping");
+          next()
+          return
+        end
         saving = true
         file.write(payload:sub(start + 4))
       end
@@ -125,12 +131,10 @@ local function getJSON(host, port, path, cb)
     if saving then
       payload = payload .. pl
     else
-      if payload == '' then
-        code = pl:sub(10, 12)
-      end
       local start = pl:find("\r\n\r\n")
       if start then
         saving = true
+        code = tonumber(pl:sub(10, 12))
         payload = pl:sub(start + 4)
       end
     end
@@ -149,7 +153,7 @@ local function getJSON(host, port, path, cb)
     if err ~= 0 then
       cb(err, { version = 0, files = { } })
     else
-      cb(tonumber(code), cjson.decode(payload))
+      cb(code, cjson.decode(payload))
     end
   end)
 
