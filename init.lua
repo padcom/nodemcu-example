@@ -1,4 +1,4 @@
-DEVICE_TYPE = 'alamakota'
+DEVICE_TYPE = 'rf-gateway'
 HOST = "192.168.32.10"
 PORT = 3000
 
@@ -47,7 +47,7 @@ local function getCurrentConfig()
     local ok, config = pcall(cjson.decode, file.read())
     if ok then return config  end
   end
-  return { type = DEVICE_TYPE, version = 0, files = { } }
+  return { version = 0, files = { } }
 end
 
 local function downloadFile(f, next)

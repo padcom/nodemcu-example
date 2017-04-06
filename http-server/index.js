@@ -8,14 +8,15 @@ const path = require('path')
 const mime = require('mime')
 
 const devices = {
-  alamakota: {
+  'rf-gateway': {
     version: '10',
     files: [ 'application.lua', 'rfrecv.lua' ]
   }
 }
 
 app.get('/:type', function(req, resp) {
-  log("info", "GET " + req.params.file)
+  const version = devices[req.params.type] ? devices[req.params.type].version : '?'
+  log("info", "GET " + req.params.type + "/" + version)
 
   if (devices[req.params.type]) {
     resp.send(devices[req.params.type])
@@ -26,10 +27,11 @@ app.get('/:type', function(req, resp) {
 })
 
 app.get('/:type/:file', function(req, resp) {
-  log("info", "GET " + req.params.type + "/" + devices[req.params.type].version + "#" + req.params.file)
+  const version = devices[req.params.type] ? devices[req.params.type].version : '?'
+  log("info", "GET " + req.params.type + "/" + version + "#" + req.params.file)
 
   if (devices[req.params.type]) {
-    const filePath = path.join(__dirname, '../' + req.params.file);
+    const filePath = path.join(__dirname, '../devices/' + req.params.type + '/' + req.params.file);
 
     if (fs.existsSync(filePath)) {
       const stat = fs.statSync(filePath);
