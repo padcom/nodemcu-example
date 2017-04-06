@@ -1,3 +1,6 @@
+-- Clear prompt
+print("\n")
+
 -- Initialize MQTT client
 m = mqtt.Client()
 

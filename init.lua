@@ -52,7 +52,6 @@ end
 
 local function downloadFile(f, next)
   print("Updating " .. f .. "...")
-  -- print("http://"..HOST..":"..PORT.."/" .. DEVICE_TYPE .. "/" .. f)
 
   file.remove(f)
   file.open(f, "w+")
@@ -120,7 +119,7 @@ local function checkForUpdates(next)
           print("Files downloaded - saving config...")
           saveConfig(availableConfig)
           print("System updated - restarting...")
-          tmr.create():alarm(1000, tmr.ALARM_SINGLE, node.restart)
+          tmr.create():alarm(3000, tmr.ALARM_SINGLE, node.restart)
         end)
       else
         print("current version (" .. currentConfig.version .. ") up to date")
