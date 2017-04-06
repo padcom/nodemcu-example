@@ -26,8 +26,9 @@ app.get('/:type', function(req, resp) {
 })
 
 app.get('/:type/:file', function(req, resp) {
+  log("info", "GET " + req.params.type + "/" + devices[req.params.type].version + "#" + req.params.file)
+
   if (devices[req.params.type]) {
-    log("info", "GET " + req.params.type + "/" + devices[req.params.type].version + "#" + req.params.file)
     const filePath = path.join(__dirname, '../' + req.params.file);
 
     if (fs.existsSync(filePath)) {
