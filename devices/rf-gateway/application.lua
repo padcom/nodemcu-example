@@ -1,6 +1,9 @@
 -- Clear prompt
 print("\n")
 
+dofile('rfsender.lua')
+local rfsender = RfSender(GPIO14, GPIO12, GPIO15)
+
 -- Initialize MQTT client
 m = mqtt.Client()
 
@@ -49,10 +52,7 @@ m:on("message", function(c, topic, message)
       local repetitions = tonumber(parser())
       local code = tonumber(parser())
       local length = tonumber(parser())
-      gpio.write(GPIO2, gpio.HIGH)
-      gpio.write(GPIO15, gpio.HIGH)
-      rfswitch.send(protocol, pulse, repetitions, GPIO14, code, length)
-      gpio.write(GPIO15, gpio.LOW)
+      rfsender:send(protocol, pulse, repetitions, code, length)
       log("RF433 Sent", { protocol = protocol, pulse = pulse, repetitions = repetitions, code = code, length = length })
     end) then
       log("Error while processing bus/rf/433/out message '" .. message .."'", {})
@@ -61,10 +61,6 @@ m:on("message", function(c, topic, message)
 end)
 
 print("MQTT: setup completed")
-
---Initialize rfswitch
-gpio.mode(GPIO15, gpio.OUTPUT)
-gpio.write(GPIO15, gpio.LOW)
 
 -- Initialize rfrecv
 dofile('rfrecv.lua')
@@ -77,4 +73,3 @@ rfrecv.start(GPIO13, GPIO2, function(code, bits)
 end)
 
 print("RFRECV: Setup completed")
-

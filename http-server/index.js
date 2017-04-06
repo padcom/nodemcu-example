@@ -9,8 +9,8 @@ const mime = require('mime')
 
 const devices = {
   'rf-gateway': {
-    version: '11',
-    files: [ 'application.lua', 'rfrecv.lua' ]
+    version: '15',
+    files: [ 'application.lua', 'rfrecv.lua', 'rfsender.lua' ]
   }
 }
 
