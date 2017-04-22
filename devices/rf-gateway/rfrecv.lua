@@ -3,11 +3,7 @@ rfrecv = {
   -- Protocol specification
   -- ORNO: PULSE=400, SIGMA=200, PREAMBLE=6, LONG=3, SHORT=1, BITS=24
   -- TEMP: PULSE=350, SIGMA=175, PREAMBLE=31, LONG=3, SHORT=1, BITS=24
-  PULSE     = 350,  -- pulse length (in ms)
-  SIGMA     = 175,  -- pulse tolerance (50% of the pulse)
-  PREAMBLE  = 31,   -- length of preamble
-  LONG      = 3,    -- length of long pulse
-  SHORT     = 1,    -- length of short pulse
+  PREAMBLE  = 7000, -- length of preamble
   BITS      = 24,   -- number of bits
 
   -- Public state
@@ -64,17 +60,19 @@ rfrecv = {
 
     if rfrecv._state == rfrecv.STATE_WAIT_PREAMBLE then
       -- receive preamble
-      if math.abs(len - (rfrecv.PULSE * rfrecv.PREAMBLE)) < rfrecv.SIGMA then
+      if len > rfrecv.PREAMBLE then
         rfrecv._value = 0
         rfrecv._bits  = 0
         rfrecv._state = rfrecv.STATE_READ_WIRE_BIT_HIGH
+        rfrecv.SHORT = len/31
+        rfrecv.LONG  = len/11
       end
     elseif rfrecv._state == rfrecv.STATE_READ_WIRE_BIT_HIGH then
       -- read higher wire bit
-      if math.abs(len - (rfrecv.PULSE * rfrecv.LONG)) < rfrecv.SIGMA then
+      if math.abs(len - rfrecv.LONG) < rfrecv.LONG/3 then
         rfrecv._nibble = 30
         rfrecv._state = rfrecv.STATE_READ_WIRE_BIT_LOW
-      elseif math.abs(len - (rfrecv.PULSE * rfrecv.SHORT)) < rfrecv.SIGMA then
+      elseif math.abs(len - rfrecv.SHORT) < rfrecv.SHORT/2 then
         rfrecv._nibble = 10
         rfrecv._state = rfrecv.STATE_READ_WIRE_BIT_LOW
       else
@@ -82,10 +80,10 @@ rfrecv = {
       end
     elseif rfrecv._state == rfrecv.STATE_READ_WIRE_BIT_LOW then
       -- read lower wire bit
-      if (math.abs(len - (rfrecv.PULSE * rfrecv.LONG)) < rfrecv.SIGMA) then
+      if math.abs(len - rfrecv.LONG) < rfrecv.LONG/3 then
         rfrecv._nibble = rfrecv._nibble + 3
         rfrecv._state = rfrecv.STATE_READ_WIRE_BIT_HIGH
-      elseif math.abs(len - (rfrecv.PULSE * rfrecv.SHORT)) < rfrecv.SIGMA then
+      elseif math.abs(len - rfrecv.SHORT) < rfrecv.SHORT/2 then
         rfrecv._nibble = rfrecv._nibble + 1
         rfrecv._state = rfrecv.STATE_READ_WIRE_BIT_HIGH
       else
