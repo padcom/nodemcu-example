@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>House</title>
+  <script src="https://unpkg.com/vue" charset="utf-8"></script>
+  <style>
+    .switch { padding: 2px; }
+    .title { display: inline-block; width: 200px; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <my-output v-for="sw in switches" :title="sw.title" :id="sw.id"></my-output>
+  </div>
+
+  <script id="component_my-output" type="x-script">
+    <div class="switch">
+      <span class="title">{{ title }}</span>
+      <button @click="on">ON</button>
+      <button @click="off">OFF</button>
+    </div>
+  </script>
+
+  <script type="text/javascript">
+    Vue.component('my-output', {
+      template: '#component_my-output',
+      props: {
+        id: { required: true },
+        title: { default: 'SWITCH' }
+      },
+      methods: {
+        switch(state) {
+          fetch(`/api/switch/${this.id}`, {
+            method: 'POST',
+            body: `{ "state": "${state}" }`,
+            headers: { 'Content-Type': 'application/json '}
+          })
+          .then(console.log("OK"))
+          .catch(e => console.log("ERROR: ", e))
+        },
+        on() {
+          console.log("ON")
+          this.switch('on')
+        },
+        off() {
+          console.log("OFF")
+          this.switch('off')
+        }
+      }
+    });
+  </script>
+
+  <script type="text/javascript">
+    new Vue({
+      el: '#app',
+      components: [ 'MyOutput' ],
+      data: {
+        message: "Hello!",
+        switches: [
+          { id: "test" },
+          { title: "Łazienka 1", id: "bathroom1" },
+          { title: "Łazienka 2", id: "bathroom2" },
+          { title: "Kibel", id: "restroom" },
+          { title: "Kuchnia", id: "kitchen" },
+          { title: "Garderoba", id: "garderoba" },
+          { title: "Pokój Lewy", id: "big-room-left" },
+          { title: "Pokój Prawy", id: "big-room-right" },
+          { title: "Czarek", id: "czarek" },
+          { title: "Adaś", id: "adas" },
+        ]
+      }
+    })
+  </script>
+</body>
+</html>
