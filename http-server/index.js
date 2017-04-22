@@ -6,6 +6,7 @@ const app = express()
 const fs = require('fs')
 const path = require('path')
 const mime = require('mime')
+const hashFiles = require('hash-files')
 
 const devices = {
   'rf-gateway': {
@@ -14,11 +15,20 @@ const devices = {
   }
 }
 
+function v(name, device) {
+  if (!device) return 0;
+  var files = device.files.map(file => `../devices/${name}/${file}`)
+  return hashFiles.sync({ files, noGlob: true })
+}
+
+console.log(v('rf-gateway', devices['rf-gateway']))
+
 app.get('/:type', function(req, resp) {
   const version = devices[req.params.type] ? devices[req.params.type].version : '?'
   log("info", "GET " + req.params.type + "/" + version)
 
   if (devices[req.params.type]) {
+    devices[req.params.type].version = v(req.params.type, devices[req.params.type])
     resp.send(devices[req.params.type])
   } else {
     resp.writeHead(404)
