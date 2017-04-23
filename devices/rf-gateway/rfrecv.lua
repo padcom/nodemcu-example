@@ -28,6 +28,7 @@ rfrecv = {
     gpio.mode(rfrecv.pin, gpio.INT, gpio.PULLUP)
     gpio.trig(rfrecv.pin, "both", rfrecv.pincb)
 
+    gpio.write(rfrecv.led, 0)
     print("Receiver: started")
   end,
 
@@ -38,6 +39,7 @@ rfrecv = {
 
     rfrecv._state = STATE_WAIT_PREAMBLE
 
+    gpio.write(rfrecv.led, 1)
     print("Receiver: stopped")
   end,
 
@@ -53,7 +55,7 @@ rfrecv = {
   STATE_READ_WIRE_BIT_LOW  = 2,
 
   pincb = function(level, ts)
-    gpio.write(rfrecv.led, level)
+--    gpio.write(rfrecv.led, level)
 
     local len = ts - rfrecv._prevts
     rfrecv._prevts = ts
@@ -69,10 +71,10 @@ rfrecv = {
       end
     elseif rfrecv._state == rfrecv.STATE_READ_WIRE_BIT_HIGH then
       -- read higher wire bit
-      if math.abs(len - rfrecv.LONG) < rfrecv.LONG/3 then
+      if math.abs(len - rfrecv.LONG) < (rfrecv.LONG*10)/25 then
         rfrecv._nibble = 30
         rfrecv._state = rfrecv.STATE_READ_WIRE_BIT_LOW
-      elseif math.abs(len - rfrecv.SHORT) < rfrecv.SHORT/2 then
+      elseif math.abs(len - rfrecv.SHORT) < (rfrecv.SHORT*10)/15 then
         rfrecv._nibble = 10
         rfrecv._state = rfrecv.STATE_READ_WIRE_BIT_LOW
       else
