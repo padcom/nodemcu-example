@@ -8,11 +8,13 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/fetch/2.0.3/fetch.js"></script>
   <script src="https://unpkg.com/vue" charset="utf-8"></script>
   <style>
-    .switch { padding: 2px; font-family: arial }
-    .switch button { padding: 7px 20px 8px 20px; width: 70px; height: 31px; }
+    .switch { display: flex; padding: 2px 1px 2px 1px; font-family: arial; vertical-align: middle; }
+    .switch:nth-child(n+2) { border-top: solid 1px #eee; }
+    .switch .title { flex-grow: 1; vertical-align: middle; padding-top: 10px; font-weight: bold; }
+    .switch button { margin-left: 5px; width: 80px; height: 34.5px; }
     .title { display: inline-block; width: 150px; }
-    .log-view { margin-top: 10px; padding-top: 10px; border-top: solid 1px black; height: 200px; overflow-y: scroll; }
-    .log-entry { font-size: 10px; font-family: monospace; white-space: pre; }
+    .log-view { margin-top: 10px; padding-top: 10px; border-top: solid 1px black; }
+    .log-entry { font-size: 9px; font-family: monospace; white-space: pre; }
   </style>
 </head>
 <body>
@@ -25,7 +27,7 @@
     Vue.component('my-output', {
       template: '' +
       '  <div class="switch">' +
-      '    <span class="title">{{ title }}</span>' +
+      '    <div class="title">{{ title }}</div>' +
       '    <button @click="on">ON</button>' +
       '    <button @click="off">OFF</button>' +
       '  </div>'
@@ -74,26 +76,25 @@
   <script type="text/javascript">
     var app = new Vue({
       el: '#app',
-      components: [ 'MyOutput' ],
       data: {
-        messages: [],
+        messages: [
+        ],
         switches: [
-          { id: "test" },
           { title: "Łazienka 1", id: "bathroom1" },
           { title: "Łazienka 2", id: "bathroom2" },
           { title: "Kibel", id: "restroom" },
           { title: "Kuchnia", id: "kitchen" },
           { title: "Garderoba", id: "garderoba" },
-          { title: "Pokój Lewy", id: "big-room-left" },
-          { title: "Pokój Prawy", id: "big-room-right" },
+          { title: "Pokój 1", id: "big-room-left" },
+          { title: "Pokój 2", id: "big-room-right" },
           { title: "Czarek", id: "czarek" },
           { title: "Adaś", id: "adas" },
         ]
       }
     })
 
-    var ls = new WebSocket('ws://' + location.host + '/log')
-    ls.onmessage = function(e) {
+    var logs = new WebSocket('ws://' + location.host + '/log')
+    logs.onmessage = function(e) {
       app.messages.push(new Date().toGMTString() + " - " + e.data)
     }
   </script>
