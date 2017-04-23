@@ -19,7 +19,7 @@ const switches = {
   'kitchen': { on: 5575953, off: 5575956 },
   'garderoba': { on: 5575937, off: 5575940 },
   'restroom': { on: 5575761, off: 5575764 },
-  'czarek': { on: 5575681, off: 5575684 },
+  'czarek': { on: 7864320, off: 5592404 },
   'adas': { on: 5574993, off: 5574996 },
 }
 
