@@ -92,12 +92,10 @@
       }
     })
 
-    var ls = new WebSocket('ws://' + location.host + '/echo')
+    var ls = new WebSocket('ws://' + location.host + '/log')
     ls.onmessage = function(e) {
       app.messages.push(new Date().toGMTString() + " - " + e.data)
     }
-
-//    app.messages.push('FETCH: ' + window.fetch)
   </script>
 </body>
 </html>

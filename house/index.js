@@ -1,25 +1,8 @@
 #!/usr/bin/env node
 
-console.log("Hello")
-
-const mqtt = require('mqtt')
-const client  = mqtt.connect('mqtt://192.168.32.2', { clientId: 'house' })
-
-client.subscribe('bus/rf/433/in')
-client.subscribe('bus/rf/433/out')
-
-client.on('message', function(topic, message) {
-  if (topic == 'bus/rf/433/in') handleRfInMessage(message.toString());
-  if (topic == 'bus/rf/433/out') handleRfOutMessage(message.toString());
-});
-
-
-const express = require('express')
-const app = express()
-const expressWs = require('express-ws')(app)
-
-app.use(express.static('public'))
-app.use(require('body-parser').json())
+// -----------------------------------------------------------------------------
+// Config
+// -----------------------------------------------------------------------------
 
 const switches = {
   'bathroom1': { on: '5575697', off: '5575700' },
@@ -32,6 +15,32 @@ const switches = {
   'czarek': { on: 7864320, off: 5592404 },
   'adas': { on: 5574993, off: 5574996 },
 }
+
+// -----------------------------------------------------------------------------
+// MQTT
+// -----------------------------------------------------------------------------
+
+const mqtt = require('mqtt')
+const client  = mqtt.connect('mqtt://192.168.32.2', { clientId: 'house' })
+
+client.subscribe('bus/rf/433/in')
+client.subscribe('bus/rf/433/out')
+
+client.on('message', function(topic, message) {
+  if (topic == 'bus/rf/433/in') broadcast('/log', message.toString());
+  if (topic == 'bus/rf/433/out') broadcast('/log', message.toString());
+});
+
+// -----------------------------------------------------------------------------
+// Web
+// -----------------------------------------------------------------------------
+
+const express = require('express')
+const app = express()
+const expressWs = require('express-ws')(app)
+
+app.use(express.static('public'))
+app.use(require('body-parser').json())
 
 app.post('/api/switch/:switch', function(req, res) {
   const sw = req.params.switch
@@ -48,28 +57,32 @@ app.post('/api/switch/:switch', function(req, res) {
   }
 })
 
-app.ws('/echo', function(ws, req) {
-  ws.on('message', function(msg) {
-    ws.send(msg);
-  });
+// -----------------------------------------------------------------------------
+// Web socket
+// -----------------------------------------------------------------------------
+
+app.ws('/log', function(ws, req) {
 });
 
-function broadcast(clients, message) {
-  clients.forEach(function(ws) {
+var logWss = expressWs.getWss('/log');
+
+function broadcast(channel, message) {
+  function isWebSocketForAddress() {
+    return ws => ws.upgradeReq.url == `${channel}/.websocket`
+  }
+
+  function sendMessage(ws) {
     ws.send(message);
-  });
+  }
+
+  Array.from(logWss.clients)
+    .filter(isWebSocketForAddress("/log"))
+    .forEach(sendMessage)
 }
 
-var eventsWs = expressWs.getWss('/events');
-
-function handleRfOutMessage(message) {
-  broadcast(eventsWs.clients, message)
-}
-
-function handleRfInMessage(message) {
-  broadcast(eventsWs.clients, message)
-}
-
+// -----------------------------------------------------------------------------
+// Main
+// -----------------------------------------------------------------------------
 
 app.listen(3001, function () {
   console.log('Example app listening on port 3001!')
