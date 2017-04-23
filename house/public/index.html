@@ -5,28 +5,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>House</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fetch/2.0.3/fetch.js"></script>
   <script src="https://unpkg.com/vue" charset="utf-8"></script>
   <style>
-    .switch { padding: 2px; }
-    .title { display: inline-block; width: 200px; }
+    .switch { padding: 2px; font-family: arial }
+    .switch button { padding: 7px 20px 8px 20px; width: 70px; height: 31px; }
+    .title { display: inline-block; width: 150px; }
+    .log-view { margin-top: 10px; padding-top: 10px; border-top: solid 1px black; height: 200px; overflow-y: scroll; }
+    .log-entry { font-size: 10px; font-family: monospace; white-space: pre; }
   </style>
 </head>
 <body>
   <div id="app">
-    <my-output v-for="sw in switches" :title="sw.title" :id="sw.id"></my-output>
+    <my-output v-for="sw in switches" :key="sw.id" :title="sw.title" :id="sw.id"></my-output>
+    <log-view :messages="messages"></log-view>
   </div>
-
-  <script id="component_my-output" type="x-script">
-    <div class="switch">
-      <span class="title">{{ title }}</span>
-      <button @click="on">ON</button>
-      <button @click="off">OFF</button>
-    </div>
-  </script>
 
   <script type="text/javascript">
     Vue.component('my-output', {
-      template: '#component_my-output',
+      template: '' +
+      '  <div class="switch">' +
+      '    <span class="title">{{ title }}</span>' +
+      '    <button @click="on">ON</button>' +
+      '    <button @click="off">OFF</button>' +
+      '  </div>'
+      ,
       props: {
         id: { required: true },
         title: { default: 'SWITCH' }
@@ -36,29 +39,44 @@
           fetch(`/api/switch/${this.id}`, {
             method: 'POST',
             body: `{ "state": "${state}" }`,
-            headers: { 'Content-Type': 'application/json '}
+            headers: { 'Content-Type': 'application/json' }
           })
-          .then(console.log("OK"))
-          .catch(e => console.log("ERROR: ", e))
+          .catch(function(e) { app.messages.push(`ERROR: ${e}`); })
         },
         on() {
-          console.log("ON")
           this.switch('on')
         },
         off() {
-          console.log("OFF")
           this.switch('off')
         }
       }
     });
   </script>
 
+  <script>
+    Vue.component('log-view', {
+      template: '' +
+      '  <div class="log-view">' +
+      '    <div class="log-entry" v-for="message in list">{{ message }}</div>' +
+      '  </div>'
+      ,
+      props: {
+        messages: { default: [] }
+      },
+      computed: {
+        list() {
+          return this.messages.reverse()
+        }
+      }
+    })
+  </script>
+
   <script type="text/javascript">
-    new Vue({
+    var app = new Vue({
       el: '#app',
       components: [ 'MyOutput' ],
       data: {
-        message: "Hello!",
+        messages: [],
         switches: [
           { id: "test" },
           { title: "Łazienka 1", id: "bathroom1" },
@@ -73,6 +91,13 @@
         ]
       }
     })
+
+    var ls = new WebSocket('ws://' + location.host + '/echo')
+    ls.onmessage = function(e) {
+      app.messages.push(new Date().toGMTString() + " - " + e.data)
+    }
+
+//    app.messages.push('FETCH: ' + window.fetch)
   </script>
 </body>
 </html>
