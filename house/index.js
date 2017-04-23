@@ -84,6 +84,6 @@ function broadcast(channel, message) {
 // Main
 // -----------------------------------------------------------------------------
 
-app.listen(3001, function () {
-  console.log('Example app listening on port 3001!')
+app.listen(3000, function () {
+  console.log('House started')
 })

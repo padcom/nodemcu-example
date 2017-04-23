@@ -13,8 +13,7 @@
     .switch .title { flex-grow: 1; vertical-align: middle; padding-top: 10px; font-weight: bold; }
     .switch button { margin-left: 5px; width: 80px; height: 34.5px; }
     .title { display: inline-block; width: 150px; }
-    .log-view { margin-top: 10px; padding-top: 10px; border-top: solid 1px black; }
-    .log-entry { font-size: 9px; font-family: monospace; white-space: pre; }
+    .log-view { margin-top: 10px; padding-top: 10px; border-top: solid 1px black; font-size: 10px; font-family: monospace; white-space: pre; }
   </style>
 </head>
 <body>
@@ -57,18 +56,9 @@
 
   <script>
     Vue.component('log-view', {
-      template: '' +
-      '  <div class="log-view">' +
-      '    <div class="log-entry" v-for="message in list">{{ message }}</div>' +
-      '  </div>'
-      ,
+      template: '<div class="log-view">{{ messages }} </div>',
       props: {
-        messages: { default: [] }
-      },
-      computed: {
-        list() {
-          return this.messages.reverse()
-        }
+        messages: { default: '' }
       }
     })
   </script>
@@ -77,8 +67,7 @@
     var app = new Vue({
       el: '#app',
       data: {
-        messages: [
-        ],
+        messages: '',
         switches: [
           { title: "Łazienka 1", id: "bathroom1" },
           { title: "Łazienka 2", id: "bathroom2" },
@@ -95,7 +84,7 @@
 
     var logs = new WebSocket('ws://' + location.host + '/log')
     logs.onmessage = function(e) {
-      app.messages.push(new Date().toGMTString() + " - " + e.data)
+      app.messages = new Date().toGMTString() + " - " + e.data + "\n" + app.messages
     }
   </script>
 </body>
