@@ -1,10 +1,11 @@
-DEVICE_TYPE = 'rf-gateway'
+DEVICE_TYPE = 'rf-dev'
 
 local HOST = "192.168.32.10"
 local PORT = 3000
 
 local _wifi_timestamp = tmr.now()
 
+GPIO5  = 1
 GPIO0  = 3
 GPIO4  = 2
 GPIO2  = 4
@@ -14,6 +15,9 @@ GPIO13 = 7
 GPIO15 = 8
 GPIO16 = 0
 
+function reset()
+  node.restart()
+end
 
 local function isResetSwitchPressed()
   -- reset settings if GPIO16 low (default: high with pullup)

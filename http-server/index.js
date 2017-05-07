@@ -12,6 +12,10 @@ const devices = {
   'rf-gateway': {
     version: '15',
     files: [ 'temp.lua', 'application.lua', 'rfrecv.lua', 'rfsender.lua' ]
+  },
+  'rf-dev': {
+    version: '1',
+    files: [ 'application.lua' ]
   }
 }
 

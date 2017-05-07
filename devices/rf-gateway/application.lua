@@ -1,8 +1,10 @@
 -- Clear prompt
 print("\n")
 
+GPIO5  = 1
+
 dofile('rfsender.lua')
-local rfsender = RfSender(GPIO14, GPIO12, GPIO15)
+local rfsender = RfSender(GPIO4, GPIO5, GPIO15)
 
 -- Initialize MQTT client
 m = mqtt.Client()
@@ -66,7 +68,7 @@ print("MQTT: setup completed")
 dofile('rfrecv.lua')
 print("RFRECV: Loaded")
 
-rfrecv.start(GPIO13, GPIO2, function(code, bits)
+rfrecv.start(GPIO12, GPIO2, function(code, bits)
   print("RFRECV: received code " .. code .. "/" .. bits)
   log("RF433 Received", { code = code, bits = bits })
   publish("bus/rf/433/in", code .. "," .. bits, 0, 0)
