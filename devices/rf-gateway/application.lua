@@ -1,10 +1,9 @@
+uart.setup(0, 57600, 8, uart.PARITY_NONE, uart.STOPBITS_1, 1)
+
 -- Clear prompt
-print("\n")
+print("\n\r")
 
 GPIO5  = 1
-
-dofile('rfsender.lua')
-local rfsender = RfSender(GPIO4, GPIO5, GPIO15)
 
 -- Initialize MQTT client
 m = mqtt.Client()
@@ -35,43 +34,82 @@ end
 
 -- Connect to MQTT server
 m:connect("192.168.32.2", 1883, 0, 1, function(client)
-  print("MQTT: connected");
-  m:subscribe("bus/rf/433/out", 0);
+  publish("bus/rf-link/log", "30,MQTT,CONNECTED=1", 0, 0);
+  m:subscribe("bus/rf-link/out", 0);
+  m:subscribe("bus/rf-link/raw", 0);
+  m:subscribe("bus/rf-link/cmd", 0);
+  initHardware()
 end)
+
+function trim(s)
+  return (s:gsub("^%s*(.-)%s*$", "%1"))
+end
+
+local PROCESSORS = {}
 
 -- Process MQTT topic messages
 m:on("message", function(c, topic, message)
-  print("MQTT: topic=" .. topic .. "; message=" .. message)
-
-  -- when a message is received on 'switch' queue send that code via RF transmitter
-  if topic == "bus/rf/433/out" then
-    -- the protocol: proto,pulse,repetitions,code,length
-    -- eg. 1,350,4,5393,24
+  local processor = PROCESSORS[topic]
+  if processor ~= nil then
+    log("Processor found for topic " .. topic .. "found - processing", {})
     if not pcall(function()
-      local parser = string.gmatch(message, "[^,]+")
-      local protocol = tonumber(parser())
-      local pulse = tonumber(parser())
-      local repetitions = tonumber(parser())
-      local code = tonumber(parser())
-      local length = tonumber(parser())
-      rfsender:send(protocol, pulse, repetitions, code, length)
-      log("RF433 Sent", { protocol = protocol, pulse = pulse, repetitions = repetitions, code = code, length = length })
+      processor(c, topic, message)
     end) then
-      log("Error while processing bus/rf/433/out message '" .. message .."'", {})
+      log("Error while processing " .. topic .. " message '" .. message .."'", {})
     end
+  else
+    log("No processor found for topic '" .. topic .. "'", {})
   end
 end)
 
-print("MQTT: setup completed")
+function initHardware()
+  -- Initialize rfsender
+  dofile('rfsender.lua')
+  publish("bus/rf-link/log", "30,RFSEND,STATUS=loaded", 0, 0)
+  rfsender = RfSender(GPIO4, GPIO5, GPIO15)
+  publish("bus/rf-link/log", "30,RFSEND,STATUS=ready", 0, 0)
 
--- Initialize rfrecv
-dofile('rfrecv.lua')
-print("RFRECV: Loaded")
+  -- Initialize rfrecv
+  dofile('rfrecv.lua')
+  publish("bus/rf-link/log", "30,RFRECV,STATUS=loaded", 0, 0)
 
-rfrecv.start(GPIO12, GPIO2, function(code, bits)
-  print("RFRECV: received code " .. code .. "/" .. bits)
-  log("RF433 Received", { code = code, bits = bits })
-  publish("bus/rf/433/in", code .. "," .. bits, 0, 0)
-end)
+  rfrecv.init(GPIO12, GPIO2, function(code, bits, preamble, short, long)
+    log("RF433 Received", { code = code, bits = bits })
+    publish("bus/rf-link/in", "20,xx,ESP12E,ID=" .. code .. ",BITS=" .. bits, 0, 0)
+  end)
 
-print("RFRECV: Setup completed")
+  publish("bus/rf-link/log", "30,RFRECV,STATUS=ready", 0, 0)
+
+  uart.on("data", "\n", function(data)
+    log("RF433 Received", { data = data })
+    uart.write(0, data)
+    m:publish("bus/rf-link/in", data:gsub("%s+", ""), 0, 0)
+  end, 0)
+
+  publish("bus/rf-link/log", "30,RFLINK,STATUS=ready", 0, 0)
+end
+
+PROCESSORS["bus/rf-link/raw"] = function(client, topic, message)
+  -- the protocol: proto,pulse,repetitions,code,length
+  -- eg. 1,350,4,5393,24
+  local parser = string.gmatch(message, "[^,]+")
+  local protocol = tonumber(parser())
+  local pulse = tonumber(parser())
+  local repetitions = tonumber(parser())
+  local code = tonumber(parser())
+  local length = tonumber(parser())
+  rfsender:send(protocol, pulse, repetitions, code, length)
+  log("RF433 Sent", { protocol = protocol, pulse = pulse, repetitions = repetitions, code = code, length = length })
+end
+
+PROCESSORS["bus/rf-link/out"] = function(client, topic, message)
+  print(message)
+  log("RF433 Sent", { message = message })
+end
+
+PROCESSORS["bus/rf-link/cmd"] = function(client, topic, message)
+  if message == "30;RESTART;" then
+    node.restart()
+  end
+end
+

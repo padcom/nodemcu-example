@@ -1,4 +1,4 @@
-DEVICE_TYPE = 'rf-dev'
+DEVICE_TYPE = 'rf-gateway'
 
 local HOST = "192.168.32.10"
 local PORT = 3000
