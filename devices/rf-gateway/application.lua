@@ -110,6 +110,15 @@ end
 PROCESSORS["bus/rf-link/cmd"] = function(client, topic, message)
   if message == "30;RESTART;" then
     node.restart()
+  elseif message == "30;LED=ON;" then
+    gpio.write(GPIO2, 0)
+  elseif message == "30;LED=OFF;" then
+    gpio.write(GPIO2, 1)
+  elseif message == "30;LED=BLINK;" then
+    gpio.write(GPIO2, 0)
+    tmr.alarm(4, 1000, tmr.ALARM_AUTO, function()
+      gpio.write(GPIO2, 1)
+    end)
   end
 end
 
