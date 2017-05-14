@@ -1,5 +1,12 @@
 uart.setup(0, 57600, 8, uart.PARITY_NONE, uart.STOPBITS_1, 1)
 
+local function split(s, sep)
+   local sep, fields = sep or ":", {}
+   local pattern = string.format("([^%s]+)", sep)
+   s:gsub(pattern, function(c) fields[#fields+1] = c end)
+   return fields
+end
+
 -- Clear prompt
 print("\n\r")
 
@@ -36,7 +43,6 @@ end
 m:connect("192.168.32.2", 1883, 0, 1, function(client)
   publish("bus/rf-link/log", "30,MQTT,CONNECTED=1", 0, 0);
   m:subscribe("bus/rf-link/out", 0);
-  m:subscribe("bus/rf-link/raw", 0);
   m:subscribe("bus/rf-link/cmd", 0);
   initHardware()
 end)
@@ -52,9 +58,7 @@ m:on("message", function(c, topic, message)
   local processor = PROCESSORS[topic]
   if processor ~= nil then
     log("Processor found for topic " .. topic .. "found - processing", {})
-    if not pcall(function()
-      processor(c, topic, message)
-    end) then
+    if not pcall(function() processor(c, topic, message) end) then
       log("Error while processing " .. topic .. " message '" .. message .."'", {})
     end
   else
@@ -89,36 +93,62 @@ function initHardware()
   publish("bus/rf-link/log", "30,RFLINK,STATUS=ready", 0, 0)
 end
 
-PROCESSORS["bus/rf-link/raw"] = function(client, topic, message)
-  -- the protocol: proto,pulse,repetitions,code,length
-  -- eg. 1,350,4,5393,24
-  local parser = string.gmatch(message, "[^,]+")
-  local protocol = tonumber(parser())
-  local pulse = tonumber(parser())
-  local repetitions = tonumber(parser())
-  local code = tonumber(parser())
-  local length = tonumber(parser())
-  rfsender:send(protocol, pulse, repetitions, code, length)
-  log("RF433 Sent", { protocol = protocol, pulse = pulse, repetitions = repetitions, code = code, length = length })
-end
-
 PROCESSORS["bus/rf-link/out"] = function(client, topic, message)
   print(message)
   log("RF433 Sent", { message = message })
 end
 
+local COMMANDS = {}
+
 PROCESSORS["bus/rf-link/cmd"] = function(client, topic, message)
-  if message == "30;RESTART;" then
-    node.restart()
-  elseif message == "30;LED=ON;" then
-    gpio.write(GPIO2, 0)
-  elseif message == "30;LED=OFF;" then
-    gpio.write(GPIO2, 1)
-  elseif message == "30;LED=BLINK;" then
-    gpio.write(GPIO2, 0)
-    tmr.alarm(4, 1000, tmr.ALARM_AUTO, function()
-      gpio.write(GPIO2, 1)
-    end)
+  local command = split(message, ';')
+  local subcmd  = split(command[2], '=')
+  local params  = {}
+
+  for i = 3, #command do
+    params[i - 2] = split(command[i], '=')
+  end
+
+  local cmd = COMMANDS[subcmd[1]]
+  if cmd ~= nil then
+    if not pcall(function() cmd(subcmd[2], params) end) then
+      log("Error while processing command " .. subcmd[1], {})
+    end
+  else
+    log('Unknown command ' .. subcmd[1], {})
   end
 end
 
+COMMANDS['RESTART'] = function(subcmd, params)
+  node.restart()
+end
+
+COMMANDS['LED'] = function(subcmd, params)
+  if subcmd == "ON" then
+    gpio.write(GPIO2, 0)
+  elseif subcmd == "OFF" then
+    gpio.write(GPIO2, 1)
+  elseif subcmd == "BLINK" then
+    local duration = tonumber(params[1][1])
+    gpio.write(GPIO2, 0)
+    tmr.alarm(4, duration, tmr.ALARM_SINGLE, function()
+      gpio.write(GPIO2, 1)
+    end)
+  else
+    log('Unknown LED subcommand ' .. subcmd, {})
+  end
+end
+
+COMMANDS['RF'] = function(subcmd, params)
+  if subcmd == 'SEND' then
+    local protocol = tonumber(params[1][1])
+    local pulse = tonumber(params[2][1])
+    local repetitions = tonumber(params[3][1])
+    local code = tonumber(params[4][1])
+    local length = tonumber(params[5][1])
+    rfsender:send(protocol, pulse, repetitions, code, length)
+    log("RF=SEND", { protocol = protocol, pulse = pulse, repetitions = repetitions, code = code, length = length })
+  else
+    log('Unknown RF subcommand ' .. subcmd, {})
+  end
+end
